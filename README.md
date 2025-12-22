@@ -1,0 +1,1 @@
+# Simple python scripts to upload videos to YouTube with a Svelte/Flask web app to use them.
