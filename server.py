@@ -1,13 +1,15 @@
 from flask import Flask, send_from_directory, send_file, json
 from werkzeug.exceptions import NotFound
-from os import path
-
 from werkzeug.wrappers.response import Response
+from waitress import serve
+from os import path
+from sys import argv, exit
 
 
 
 UPLOAD_PROGRESS_FILE = "./progress.json"
 LOG_FILE = "./uploads.log"
+PORT = 3001
 app = Flask(__name__)
 
 
@@ -44,4 +46,8 @@ def log() -> Response:
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3001, debug=True)
+    if len(argv) > 1 and argv[1] == "--debug":
+        app.run(host="0.0.0.0", port=PORT, debug=True)
+        exit()
+    print(f"Waitress WSGI server listening on port {PORT}")
+    serve(app, port=PORT)
