@@ -1,3 +1,8 @@
+node_modules/
+build/
+.DS_Store
 .venv/
 client_secrets.json
 *oauth2.json
+progress.json
+uploads.log
