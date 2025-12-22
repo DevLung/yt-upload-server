@@ -1,9 +1,9 @@
+.git/
+.gitignore
+.venv/
 node_modules/
 build/
-.DS_Store
-.venv/
-client_secrets.json
-*oauth2.json
+*.md
 progress.json
 uploads.log
 upload-media-volume/

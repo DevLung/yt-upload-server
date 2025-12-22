@@ -1,0 +1,14 @@
+name: yt-upload-server
+
+services:
+  node-app:
+    build: .
+    ports:
+      - 3001:3001
+    volumes:
+      - yt-upload-media:/media
+    restart: unless-stopped
+
+volumes:
+  yt-upload-media:
+    external: true

@@ -11,7 +11,8 @@ for arg in argv[1:]:
         print(f"File path '{arg}' invalid. Skipping file...", file=stderr)
         continue
     Popen(
-        f"{path.realpath(path.join(path.dirname(__file__), '../.venv/Scripts/activate.bat'))} && " +
-        f"python {path.realpath(path.join(path.dirname(__file__), './uploader.py'))} --file {arg} --noauth_local_webserver",
+        f"bash -c 'source {path.realpath(path.join(path.dirname(__file__), '../.venv/bin/activate'))} && " +
+        f"python3 {path.realpath(path.join(path.dirname(__file__), './uploader.py'))} --file {arg} --noauth_local_webserver'",
+        shell=True,
         start_new_session=True
     )
