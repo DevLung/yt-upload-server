@@ -1,7 +1,7 @@
 <script>
 	let log = $state("loading...");
 	async function getLog() {
-		fetch("/log")
+		fetch("/upload-log")
 		.then(response => response.text())
 		.then(data => {log = data});
 	}
@@ -10,4 +10,4 @@
 
 <h1>Upload Log</h1>
 <button onclick={getLog}>refresh</button>
-<p>{log} hi</p>
+<p>{log}</p>

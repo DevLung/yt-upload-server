@@ -31,7 +31,7 @@ RETRIABLE_EXCEPTIONS: tuple = (
 )
 RETRIABLE_STATUS_CODES: list[int] = [500, 502, 503, 504]
 LOG_FILE: str = path.realpath(path.join(path.dirname(__file__), "../uploads.log"))
-UPLOAD_PROGRESS_FILE: str = path.realpath(path.join(path.dirname(__file__), "../progress.json"))
+PROGRESS_FILE: str = path.realpath(path.join(path.dirname(__file__), "../progress.json"))
 CLIENT_SECRETS_FILE: str = path.realpath(path.join(path.dirname(__file__), "client_secrets.json"))
 YOUTUBE_UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
 YOUTUBE_API_SERVICE_NAME = "youtube"
@@ -63,14 +63,14 @@ logging.basicConfig(
 
 
 def remove_progress_info() -> None:
-    if not path.exists(UPLOAD_PROGRESS_FILE):
+    if not path.exists(PROGRESS_FILE):
         return
     
-    with open(UPLOAD_PROGRESS_FILE, "r") as file:
+    with open(PROGRESS_FILE, "r") as file:
         upload_progress: dict = json.load(file)
     if task_name in upload_progress:
         del upload_progress[task_name]
-        with open(UPLOAD_PROGRESS_FILE, "w") as file:
+        with open(PROGRESS_FILE, "w") as file:
             json.dump(upload_progress, file, indent=2)
 
 
@@ -87,16 +87,16 @@ def get_authenticated_service(args) -> Resource:
 
 
 def update_progress(progress: float) -> None:
-    if not path.exists(UPLOAD_PROGRESS_FILE):
-        with open(UPLOAD_PROGRESS_FILE, "w") as file:
+    if not path.exists(PROGRESS_FILE):
+        with open(PROGRESS_FILE, "w") as file:
             json.dump({}, file)
 
-    with open(UPLOAD_PROGRESS_FILE, "r") as file:
+    with open(PROGRESS_FILE, "r") as file:
         upload_status: dict = json.load(file)
 
     upload_status[task_name] = f"{(progress * 100):.2f}%"
 
-    with open(UPLOAD_PROGRESS_FILE, "w") as file:
+    with open(PROGRESS_FILE, "w") as file:
         json.dump(upload_status, file, indent=2)
 
 

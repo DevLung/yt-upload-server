@@ -4,11 +4,10 @@ from werkzeug.wrappers.response import Response
 from waitress import serve
 from os import path
 from sys import argv, exit
+import scripts.uploader as uploader
 
 
 
-UPLOAD_PROGRESS_FILE = "./progress.json"
-LOG_FILE = "./uploads.log"
 PORT = 3001
 app = Flask(__name__)
 
@@ -35,14 +34,14 @@ def home(path) -> Response:
     return send_from_directory("client/public", path)
 
 
-@app.route("/progress")
+@app.route("/upload-progress")
 def progress() -> Response:
-    return send_from_directory(*path.split(UPLOAD_PROGRESS_FILE))
+    return send_from_directory(*path.split(uploader.PROGRESS_FILE))
 
 
-@app.route("/log")
+@app.route("/upload-log")
 def log() -> Response:
-    return send_from_directory(*path.split(LOG_FILE), mimetype="text/plain")
+    return send_from_directory(*path.split(uploader.LOG_FILE), mimetype="text/plain")
 
 
 if __name__ == "__main__":
