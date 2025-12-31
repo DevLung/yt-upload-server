@@ -1,7 +1,7 @@
 <script>
 	const UPLOAD_PROGRESS_ENDPOINT = "/upload-progress";
 	const FETCH_ERROR_MSG = "error loading progress";
-	const UPDATE_INTERVAL_MS = 5000;
+	const UPDATE_INTERVAL_MS = 2000;
     
 	let uploadProgress = $state("loading...");
 	let intervalId;

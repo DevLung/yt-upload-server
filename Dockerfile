@@ -21,4 +21,4 @@ WORKDIR /app
 
 EXPOSE 3001
 
-CMD [ ".venv/bin/python3", "server.py" ]
+CMD [ ".venv/bin/gunicorn", "--bind=0.0.0.0:3001", "--worker-class=gevent", "--workers=4", "server:app" ]

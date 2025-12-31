@@ -10,6 +10,9 @@
 		try {
 			const response = await fetch(UPLOAD_LOG_ENDPOINT);
 			if (!response.ok) {
+				if (response.status === 304) { // if file hasn't changed
+					return;
+				}
 				uploadLog = FETCH_ERROR_MSG;
 				return;
 			}

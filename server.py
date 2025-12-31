@@ -1,16 +1,15 @@
-from flask import Flask, send_from_directory, stream_with_context, json
+from flask import Flask, send_file, send_from_directory, stream_with_context, json
 from werkzeug.exceptions import NotFound
 from werkzeug.wrappers.response import Response
 from typing import Generator
-from waitress import serve
-from os import path
-from sys import argv, exit
-from time import sleep
+from gevent import sleep as gevent_sleep
 import scripts.uploader as uploader
 
 
 
-PORT = 3001
+LOG_SSE_UPDATE_S = 1
+SSE_KEEPALIVE_INTERVAL_S = 15
+
 app = Flask(__name__)
 
 
@@ -38,31 +37,39 @@ def home(path) -> Response:
 
 @app.route("/upload-progress")
 def upload_progress() -> Response:
-    return send_from_directory(
-        *path.split(uploader.PROGRESS_FILE),
+    return send_file(
+        uploader.PROGRESS_FILE,
         conditional=True
     )
 
 
 @app.route("/upload-log")
 def upload_log() -> Response:
-    return send_from_directory(
-        *path.split(uploader.LOG_FILE),
-        mimetype="text/plain"
+    return send_file(
+        uploader.LOG_FILE,
+        mimetype="text/plain",
+        conditional=True
     )
 
 
 @app.route("/upload-log/stream") # stream new log entries continuously
 def upload_log_stream() -> Response:
     def generate_lines() -> Generator:
+        seconds_to_keepalive: int = 0
         with open(uploader.LOG_FILE, "r") as file:
             file.seek(0, 2) # jump to end of file
             while True:
                 last_line: str = file.readline()
+
                 if not last_line:
-                    yield ": keep-alive\n\n" # necessary so connection doesn't die
-                    sleep(2)
+                    seconds_to_keepalive -= LOG_SSE_UPDATE_S
+                    if seconds_to_keepalive <= 0:
+                        seconds_to_keepalive = SSE_KEEPALIVE_INTERVAL_S
+                        yield ": keep-alive\n\n" # necessary so connection doesn't die
+                    gevent_sleep(LOG_SSE_UPDATE_S)
                     continue
+
+                seconds_to_keepalive = SSE_KEEPALIVE_INTERVAL_S
                 yield f"data: {last_line.rstrip()}\n\n"
 
     return Response(
@@ -76,8 +83,5 @@ def upload_log_stream() -> Response:
 
 
 if __name__ == "__main__":
-    if len(argv) > 1 and argv[1] == "--debug":
-        app.run(host="0.0.0.0", port=PORT, debug=True)
-        exit()
-    print(f"Waitress WSGI server listening on port {PORT}")
-    serve(app, port=PORT)
+    # !DEBUG ONLY!
+    app.run(host="0.0.0.0", port=3001, debug=True)
