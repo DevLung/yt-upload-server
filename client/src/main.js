@@ -1,6 +1,11 @@
-import { mount } from 'svelte';
-import App from './App.svelte';
+import { mount } from "svelte";
+import UploadLog from "./UploadLog.svelte";
+import UploadProgress from "./UploadProgress.svelte"
 
-const app = mount(App, {target: document.body});
+mount(UploadLog, {
+    target: document.getElementById("log")
+});
 
-export default app;
+mount(UploadProgress, {
+    target: document.getElementById("progress")
+})

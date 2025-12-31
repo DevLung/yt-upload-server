@@ -1,9 +1,11 @@
-from flask import Flask, send_from_directory, send_file, json
+from flask import Flask, send_from_directory, stream_with_context, json
 from werkzeug.exceptions import NotFound
 from werkzeug.wrappers.response import Response
+from typing import Generator
 from waitress import serve
 from os import path
 from sys import argv, exit
+from time import sleep
 import scripts.uploader as uploader
 
 
@@ -35,13 +37,42 @@ def home(path) -> Response:
 
 
 @app.route("/upload-progress")
-def progress() -> Response:
-    return send_from_directory(*path.split(uploader.PROGRESS_FILE))
+def upload_progress() -> Response:
+    return send_from_directory(
+        *path.split(uploader.PROGRESS_FILE),
+        conditional=True
+    )
 
 
 @app.route("/upload-log")
-def log() -> Response:
-    return send_from_directory(*path.split(uploader.LOG_FILE), mimetype="text/plain")
+def upload_log() -> Response:
+    return send_from_directory(
+        *path.split(uploader.LOG_FILE),
+        mimetype="text/plain"
+    )
+
+
+@app.route("/upload-log/stream") # stream new log entries continuously
+def upload_log_stream() -> Response:
+    def generate_lines() -> Generator:
+        with open(uploader.LOG_FILE, "r") as file:
+            file.seek(0, 2) # jump to end of file
+            while True:
+                last_line: str = file.readline()
+                if not last_line:
+                    yield ": keep-alive\n\n" # necessary so connection doesn't die
+                    sleep(2)
+                    continue
+                yield f"data: {last_line.rstrip()}\n\n"
+
+    return Response(
+        stream_with_context(generate_lines()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"
+        }
+    ) # TODO add this to nginx config to prevent buffering: `location /upload-log/stream {proxy_buffering off;}`
 
 
 if __name__ == "__main__":

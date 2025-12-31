@@ -7,4 +7,5 @@ build/
 *.md
 progress.json
 uploads.log
+.env
 upload-media-volume/
