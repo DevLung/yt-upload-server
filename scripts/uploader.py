@@ -33,7 +33,10 @@ RETRIABLE_STATUS_CODES: list[int] = [500, 502, 503, 504]
 LOG_FILE: str = path.realpath(path.join(path.dirname(__file__), "../uploads.log"))
 PROGRESS_FILE: str = path.realpath(path.join(path.dirname(__file__), "../progress.json"))
 CLIENT_SECRETS_FILE: str = path.realpath(path.join(path.dirname(__file__), "client_secrets.json"))
-YOUTUBE_UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
+SCOPES = (
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.readonly"
+)
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 MISSING_CLIENT_SECRETS_MESSAGE: str = f"""
@@ -75,7 +78,7 @@ def remove_progress_info() -> None:
 
 
 def get_authenticated_service(args) -> Resource:
-    flow: OAuth2WebServerFlow = flow_from_clientsecrets(CLIENT_SECRETS_FILE, scope=YOUTUBE_UPLOAD_SCOPE, message=MISSING_CLIENT_SECRETS_MESSAGE)
+    flow: OAuth2WebServerFlow = flow_from_clientsecrets(CLIENT_SECRETS_FILE, scope=SCOPES, message=MISSING_CLIENT_SECRETS_MESSAGE)
 
     storage: Storage = Storage(f"{argv[0]}-oauth2.json")
     credentials = storage.get()
@@ -165,8 +168,34 @@ def resumable_upload(insert_request) -> None:
             sleep(sleep_seconds)
 
 
+def api_test(youtube) -> None:
+    response = None
+    logging.info("Starting API test...")
+    request = youtube.channels().list(
+        part="snippet",
+        mine=True
+    )
+    response = request.execute()
+    if 'items' in response and response['items'] != []:
+        logger.info(f"Test successful.\n(Successfully retrieved channel info: {response['items']})")
+        print(
+            "Test successful.",
+            "Successfully retrieved channel info:",
+            f"title: {response['items'][0]['snippet']['title']}",
+            f"description: {response['items'][0]['snippet']['description'][:50]}...",
+            f"id: {response['items'][0]['id']}",
+            f"customUrl: {response['items'][0]['snippet']['customUrl']}",
+            f"publishedAt: {response['items'][0]['snippet']['publishedAt']}",
+            f"country: {response['items'][0]['snippet']['country']}",
+            sep="\n"
+        )
+    else:
+        logger.critical(f"Test failed (unexpected response: {response})")
+        exit(1)
+
+
 if __name__ == '__main__':
-    argparser.add_argument("--file", required=True, help="Video file to upload") # type: ignore
+    argparser.add_argument("--file", help="Video file to upload") # type: ignore
     argparser.add_argument("--title", help="Video title", default="[Insert Title]") # type: ignore
     argparser.add_argument("--description", help="Video description", default="[Insert Description]") # type: ignore
     argparser.add_argument("--category", default="20", # (Gaming) # type: ignore
@@ -174,20 +203,27 @@ if __name__ == '__main__':
     argparser.add_argument("--keywords", help="Video keywords, comma separated", default="") # type: ignore
     argparser.add_argument("--privacyStatus", choices=VALID_PRIVACY_STATUSES, default="private", # type: ignore
                            help="Video privacy status.")
+    argparser.add_argument("--apiTest", action="store_true", # type: ignore
+                           help="runs an API test by retrieving some channel information (all other arguments will be ignored)")
     args = argparser.parse_args() # type: ignore
-
-    task_name: str = path.basename(args.file)
+    if not args.apiTest and args.file is None:
+            argparser.error("--file is required unless --apiTest is supplied") # type: ignore
+    
+    task_name: str = path.basename("API test" if args.apiTest else args.file)
     logger: logging.Logger = logging.getLogger(task_name)
     logger.setLevel(logging.INFO)
 
     atexit.register(remove_progress_info)
 
-    if not path.exists(args.file):
+    if not args.apiTest and not path.exists(args.file):
         logger.critical(f"Invalid file path ({args.file}).")
         exit(1)
 
     youtube: Resource = get_authenticated_service(args)
     try:
+        if args.apiTest:
+            api_test(youtube)
+            exit()
         initialize_upload(youtube, args)
     except HttpError as e:
         logger.critical(f"An HTTP error {e.resp.status} occurred:\n{e.content}")
